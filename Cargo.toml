@@ -5,3 +5,4 @@ authors = ["Moses Palmér <mosespalmer@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+xcb = { version = "0.8", features = ["randr"] }
