@@ -37,6 +37,13 @@ fn main() {
             })
             .flat_map(monitor::Bounds::corners)
             .collect::<monitor::Bounds>();
-        // TODO: Implement
+        match monitor::assert_screen_size(&conn, window, bounds) {
+            Ok(_) => {
+                // TODO: Implement
+            }
+            Err(e) => {
+                eprintln!("Failed to assert screen size {}: {:?}", bounds, e)
+            }
+        }
     }
 }

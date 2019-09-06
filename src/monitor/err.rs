@@ -10,6 +10,9 @@ pub enum Error {
     /// The output is is unknown.
     UnknownOutput(u32),
 
+    /// The requested screen size is unsupported.
+    UnsupportedScreenSize(u32, u32),
+
     /// A function returned an _XCB_ error.
     XCBError(u8),
 }

@@ -217,3 +217,38 @@ pub fn bounds(
     .map(|&point| transform.apply(point))
     .collect())
 }
+
+/// Asserts that a bounded rectangle fits on screen.
+///
+/// # Arguments
+/// *  `conn` - The _XCB_ connection.
+/// *  `output` - The output to modify.
+/// *  `bounds` - The rectangle.
+pub fn assert_screen_size(
+    conn: &xcb::Connection,
+    window: xproto::Window,
+    bounds: Bounds,
+) -> Result<(), Error> {
+    // Verify that the requested size is valid
+    let screen_size_range =
+        randr::get_screen_size_range(conn, window).get_reply()?;
+    if (bounds.width as u16) > screen_size_range.max_width()
+        || (bounds.width as u16) < screen_size_range.min_width()
+        || (bounds.height as u16) > screen_size_range.max_height()
+        || (bounds.height as u16) < screen_size_range.min_height()
+    {
+        return Err(Error::UnsupportedScreenSize(bounds.width, bounds.height));
+    }
+
+    randr::set_screen_size(
+        conn,
+        window,
+        bounds.width as u16,
+        bounds.height as u16,
+        bounds.width as u32,
+        bounds.height as u32,
+    )
+    .request_check()
+    .map(|_| ())
+    .map_err(Error::from)
+}
