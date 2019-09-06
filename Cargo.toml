@@ -6,3 +6,10 @@ edition = "2018"
 
 [dependencies]
 xcb = { version = "0.8", features = ["randr"] }
+
+[profile.release]
+codegen-units = 1
+incremental = false
+lto = true
+opt-level = "s"
+panic = "abort"
