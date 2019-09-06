@@ -1,3 +1,5 @@
+use std::collections::hash_map;
+
 use xcb::{randr, xproto};
 
 mod change;
@@ -99,4 +101,73 @@ impl<'a> Iterator for Changes<'a> {
 
         None
     }
+}
+
+/// Lists all modes for all outputs.
+///
+/// # Arguments
+/// *  `conn` - The _XCB_ connection.
+/// *  `window` - The root window.
+pub fn output_modes(
+    conn: &xcb::Connection,
+    window: xproto::Window,
+) -> Result<hash_map::HashMap<randr::Output, Vec<Mode>>, Error> {
+    let resources = randr::get_screen_resources(conn, window).get_reply()?;
+    let outputs = resources
+        .outputs()
+        .iter()
+        .map(|&output| {
+            randr::get_output_info(conn, output, 0)
+                .get_reply()
+                .map(|output_info| (output, output_info))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    outputs
+        .iter()
+        .map(|(output, output_info)| {
+            Ok((
+                *output,
+                output_info
+                    .modes()
+                    .iter()
+                    .filter_map(|&mode_id| {
+                        resources
+                            .modes()
+                            .find(|mode_info| mode_info.id() == mode_id)
+                    })
+                    .map(Mode::from)
+                    .collect::<Vec<_>>(),
+            ))
+        })
+        .collect()
+}
+
+/// Finds the preferred mode for a collection of outputs.
+///
+/// # Arguments
+/// *  `conn` - The _XCB_ connection.
+/// *  `output_modes` - A mapping from outputs to all associated modes.
+pub fn preferred_modes(
+    conn: &xcb::Connection,
+    output_modes: &hash_map::HashMap<randr::Output, Vec<Mode>>,
+) -> hash_map::HashMap<randr::Output, Mode> {
+    output_modes
+        .iter()
+        .enumerate()
+        .filter_map(|(i, (output, modes))| {
+            randr::get_output_info(conn, *output, 0)
+                .get_reply()
+                .ok()
+                .map(|output_info| (i, output, output_info, modes))
+        })
+        .filter_map(|(_, output, output_info, modes)| {
+            let n_preferred = output_info.num_preferred();
+            if n_preferred > 0 {
+                modes.iter().next().map(|mode| (*output, mode.clone()))
+            } else {
+                None
+            }
+        })
+        .collect()
 }
