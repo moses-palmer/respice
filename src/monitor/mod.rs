@@ -171,3 +171,49 @@ pub fn preferred_modes(
         })
         .collect()
 }
+
+/// Calculates the bounds for an output.
+///
+/// # Arguments
+/// *  `conn` - The _XCB_ connection.
+/// *  `output` - The output to modify.
+/// *  `mode` - The mode to set.
+pub fn bounds(
+    conn: &xcb::Connection,
+    output: randr::Output,
+    mode: Mode,
+) -> Result<Bounds, Error> {
+    let output_info = randr::get_output_info(conn, output, 0)
+        .get_reply()
+        .map_err(|_| Error::UnknownOutput(output))?;
+    let crtc_info =
+        randr::get_crtc_info(conn, output_info.crtc(), 0).get_reply()?;
+    let transform: Transform =
+        randr::get_crtc_transform(conn, output_info.crtc())
+            .get_reply()?
+            .current_transform()
+            .into();
+    let (x, y) = (f32::from(crtc_info.x()), f32::from(crtc_info.y()));
+    let (width, height) = match u32::from(crtc_info.rotation() & 0x0F) {
+        randr::ROTATION_ROTATE_0 | randr::ROTATION_ROTATE_180 => {
+            (mode.width as f32, mode.height as f32)
+        }
+        randr::ROTATION_ROTATE_90 | randr::ROTATION_ROTATE_270 => {
+            (mode.height as f32, mode.width as f32)
+        }
+        _ => (0.0, 0.0),
+    };
+
+    Ok([
+        Point { x, y },
+        Point { x: x + width, y },
+        Point { x, y: y + height },
+        Point {
+            x: x + width,
+            y: y + height,
+        },
+    ]
+    .iter()
+    .map(|&point| transform.apply(point))
+    .collect())
+}

@@ -7,6 +7,9 @@ pub enum Error {
     /// The _XRANDR_ extension is not enabled.
     UnknownExtension,
 
+    /// The output is is unknown.
+    UnknownOutput(u32),
+
     /// A function returned an _XCB_ error.
     XCBError(u8),
 }

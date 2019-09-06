@@ -30,6 +30,13 @@ fn main() {
                 );
             }
         }
+        let bounds = preferred_modes
+            .iter()
+            .filter_map(|(&output, &mode)| {
+                monitor::bounds(&conn, output, mode).ok()
+            })
+            .flat_map(monitor::Bounds::corners)
+            .collect::<monitor::Bounds>();
         // TODO: Implement
     }
 }
