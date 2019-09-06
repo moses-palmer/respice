@@ -252,3 +252,34 @@ pub fn assert_screen_size(
     .map(|_| ())
     .map_err(Error::from)
 }
+
+/// Attempts to apply a mode to an output.
+///
+/// # Arguments
+/// *  `conn` - The _XCB_ connection.
+/// *  `output` - The output to modify.
+/// *  `mode` - The mode to set.
+pub fn apply_mode(
+    conn: &xcb::Connection,
+    output: randr::Output,
+    mode: Mode,
+) -> Result<(), Error> {
+    let output_info = randr::get_output_info(conn, output, 0)
+        .get_reply()
+        .map_err(|_| Error::UnknownOutput(output))?;
+    let crtc_info =
+        randr::get_crtc_info(conn, output_info.crtc(), 0).get_reply()?;
+    Ok(randr::set_crtc_config(
+        conn,
+        output_info.crtc(),
+        0,
+        0,
+        crtc_info.x(),
+        crtc_info.y(),
+        mode.id,
+        crtc_info.rotation(),
+        crtc_info.outputs(),
+    )
+    .get_reply()
+    .map(|_| ())?)
+}

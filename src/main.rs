@@ -39,7 +39,25 @@ fn main() {
             .collect::<monitor::Bounds>();
         match monitor::assert_screen_size(&conn, window, bounds) {
             Ok(_) => {
-                // TODO: Implement
+                println!("Resized screen to {}", bounds);
+                for (output, mode) in preferred_modes {
+                    match monitor::apply_mode(&conn, output, mode) {
+                        Err(e) => {
+                            eprintln!("Failed to apply mode {}: {:?}", mode, e)
+                        }
+                        Ok(_) => {
+                            println!("Applied mode {}", mode);
+                            if let Err(e) = monitor::assert_screen_size(
+                                &conn, window, bounds,
+                            ) {
+                                eprintln!(
+                                    "Failed to resize screen to {}: {:?}",
+                                    bounds, e,
+                                );
+                            }
+                        }
+                    }
+                }
             }
             Err(e) => {
                 eprintln!("Failed to assert screen size {}: {:?}", bounds, e)
